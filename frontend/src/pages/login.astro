@@ -1,0 +1,62 @@
+---
+import Layout from '../layouts/Layout.astro';
+import LoginForm from '../islands/LoginForm.tsx';
+---
+
+<Layout title="Sign in to FastBlog">
+  <main class="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+      <!-- Header -->
+      <div class="text-center">
+        <a href="/" class="text-3xl font-bold text-gray-900 dark:text-white">
+          FastBlog
+        </a>
+        <h2 class="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
+          Welcome back.
+        </h2>
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          Sign in to your account
+        </p>
+        
+        <!-- Show error messages from URL params -->
+        <script>
+          const urlParams = new URLSearchParams(window.location.search);
+          const error = urlParams.get('error');
+          const redirect = urlParams.get('redirect');
+          
+          if (error) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg';
+            
+            let errorMessage = 'Authentication required';
+            if (error === 'session_expired') {
+              errorMessage = 'Your session has expired. Please sign in again.';
+            } else if (error === 'auth_error') {
+              errorMessage = 'Authentication error. Please sign in again.';
+            }
+            
+            if (redirect) {
+              errorMessage += ` Please sign in to access ${redirect}.`;
+            }
+            
+            errorDiv.innerHTML = `<p class="text-red-700 dark:text-red-400 text-sm">${errorMessage}</p>`;
+            document.querySelector('.text-center').appendChild(errorDiv);
+          }
+        </script>
+      </div>
+
+      <!-- Login Form (React Island) -->
+      <LoginForm client:load />
+
+      <!-- Footer -->
+      <div class="text-center">
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          Don't have an account?
+          <a href="/register" class="font-medium text-gray-900 dark:text-white hover:underline">
+            Sign up
+          </a>
+        </p>
+      </div>
+    </div>
+  </main>
+</Layout>

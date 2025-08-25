@@ -1,0 +1,77 @@
+[package]
+name = "fastblog-backend"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Web Framework
+axum = { version = "0.7", features = ["macros", "multipart"] }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors", "compression-gzip", "trace", "fs"] }
+
+# Async Runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# Database
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid", "migrate"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Authentication & Security
+jsonwebtoken = "9.3"
+argon2 = "0.5"
+uuid = { version = "1.0", features = ["v4", "serde"] }
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Environment & Configuration
+dotenvy = "0.15"
+
+# Logging & Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# HTTP Client (for external APIs)
+reqwest = { version = "0.12", features = ["json"] }
+
+# Validation
+validator = { version = "0.18", features = ["derive"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Performance & Optimization
+dashmap = "6.0"  # High-performance concurrent HashMap
+once_cell = "1.19"
+
+# Text processing (for article content)
+pulldown-cmark = "0.12"  # Markdown parser
+ammonia = "4.0"  # HTML sanitization
+
+# Search functionality
+tantivy = "0.22"  # Full-text search engine
+
+# Rate limiting
+tower_governor = "0.4"
+
+# Regex for validation
+regex = "1.10"
+lazy_static = "1.4"
+
+# Random number generation
+rand_core = "0.6"
+futures = "0.3"
+
+# File upload and storage
+multer = "3.1"  # Multipart form data parsing
+bytes = "1.0"
+tokio-util = { version = "0.7", features = ["io"] }
+image = "0.25"  # Image processing
+
+[dev-dependencies]
+# Testing
+tokio-test = "0.4"

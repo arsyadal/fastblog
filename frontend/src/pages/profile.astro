@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import ProfileForm from '../islands/ProfileForm.tsx';
+
+export const prerender = false;
+---
+
+<Layout title="Profile - FastBlog">
+  <Header />
+  
+  <main class="min-h-screen bg-white dark:bg-gray-900">
+    <div class="max-w-4xl mx-auto px-6 py-12">
+      <!-- Profile Header -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">Profile Settings</h1>
+        
+        <!-- Profile Form Component -->
+        <ProfileForm client:load />
+      </div>
+    </div>
+  </main>
+</Layout>

@@ -1,0 +1,29 @@
+---
+// Static header component for maximum performance - Medium style
+import SearchBox from '../islands/SearchBox.tsx';
+import AuthButtons from '../islands/AuthButtons.tsx';
+---
+
+<header class="sticky top-0 z-50 w-full border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="flex h-16 items-center justify-between">
+      <!-- Logo - Medium style -->
+      <div class="flex items-center">
+        <a href="/" class="flex items-center">
+          <span class="text-3xl font-bold text-gray-900 dark:text-white">FastBlog</span>
+        </a>
+      </div>
+
+      <!-- Search Box - Center -->
+      <div class="flex-1 max-w-md mx-8">
+        <SearchBox client:load />
+      </div>
+
+      <!-- Auth & User Actions (React Island for interactivity) -->
+      <div class="flex items-center space-x-6">
+        <!-- Auth Buttons (React Island) -->
+        <AuthButtons client:load />
+      </div>
+    </div>
+  </div>
+</header>

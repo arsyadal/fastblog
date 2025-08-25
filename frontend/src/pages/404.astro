@@ -1,0 +1,137 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+---
+
+<Layout title="Page Not Found - FastBlog">
+  <Header />
+  
+  <main class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center px-6">
+    <div class="text-center max-w-2xl mx-auto">
+      <!-- 404 Number -->
+      <div class="mb-8">
+        <h1 class="text-9xl font-bold text-gray-300 dark:text-gray-600 leading-none">
+          404
+        </h1>
+      </div>
+      
+      <!-- Error Message -->
+      <div class="mb-8">
+        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+          Oops! Page Not Found
+        </h2>
+        <p class="text-lg text-gray-600 dark:text-gray-300 mb-6">
+          The page you're looking for doesn't exist or has been moved to another location.
+        </p>
+        <p class="text-gray-500 dark:text-gray-400">
+          Don't worry, even the best writers sometimes lose their way.
+        </p>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+        <!-- Back to Home -->
+        <a 
+          href="/"
+          class="inline-flex items-center px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold rounded-full hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors shadow-lg"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+          </svg>
+          Back to Home
+        </a>
+        
+        <!-- Search -->
+        <button 
+          onclick="document.querySelector('header button').click()"
+          class="inline-flex items-center px-6 py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-full hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+        >
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          Search Articles
+        </button>
+      </div>
+      
+      <!-- Popular Links -->
+      <div class="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Popular Destinations
+        </h3>
+        <div class="flex flex-wrap justify-center gap-4">
+          <a href="/write" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            Write Article
+          </a>
+          <span class="text-gray-300 dark:text-gray-600">•</span>
+          <a href="/profile" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            Profile
+          </a>
+          <span class="text-gray-300 dark:text-gray-600">•</span>
+          <a href="/login" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            Sign In
+          </a>
+          <span class="text-gray-300 dark:text-gray-600">•</span>
+          <a href="/register" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+            Sign Up
+          </a>
+        </div>
+      </div>
+      
+      <!-- Illustration -->
+      <div class="mt-12">
+        <div class="inline-flex items-center justify-center w-32 h-32 bg-gray-200 dark:bg-gray-700 rounded-full">
+          <svg class="w-16 h-16 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  /* Add some custom animations */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  /* Make the 404 number slightly animated */
+  h1 {
+    background: linear-gradient(45deg, #6b7280, #9ca3af, #6b7280);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient 3s ease infinite;
+  }
+  
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  /* Dark mode adjustments */
+  .dark h1 {
+    background: linear-gradient(45deg, #4b5563, #6b7280, #4b5563);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+</style>

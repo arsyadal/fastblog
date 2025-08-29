@@ -134,13 +134,22 @@ impl SearchService {
             SELECT * FROM article_search
             WHERE relevance_score > 0
             {}
-            LIMIT $2 OFFSET $3
+            LIMIT $5 OFFSET $6
         "#, sort_clause);
 
+        // Create multiple search patterns for better keyword matching
+        let exact_match = format!("%{}%", query.q.to_lowercase());
+        let word_boundary = format!("% {} %", query.q.to_lowercase());
+        let partial_start = format!("{}%", query.q.to_lowercase());
+        let multi_word = format!("%{}%", query.q.split_whitespace().collect::<Vec<_>>().join("%"));
+        
         let rows = sqlx::query(&sql)
-            .bind(&search_term)
-            .bind(limit)
-            .bind(offset)
+            .bind(&exact_match)      // $1 - exact match
+            .bind(&word_boundary)    // $2 - word boundary
+            .bind(&partial_start)    // $3 - partial start
+            .bind(&multi_word)       // $4 - multi-word
+            .bind(limit)             // $5 - limit
+            .bind(offset)            // $6 - offset
             .fetch_all(&self.pool)
             .await?;
 
@@ -204,31 +213,66 @@ impl SearchService {
                     u.created_at,
                     COUNT(DISTINCT f.follower_id) as followers_count,
                     COUNT(DISTINCT a.id) as articles_count,
-                    -- Calculate relevance score
+                    -- Enhanced relevance scoring for better keyword matching
                     (
-                        CASE WHEN LOWER(u.username) LIKE $1 THEN 10 ELSE 0 END +
-                        CASE WHEN LOWER(u.display_name) LIKE $1 THEN 8 ELSE 0 END +
-                        CASE WHEN LOWER(u.bio) LIKE $1 THEN 3 ELSE 0 END
+                        -- Username matches (highest priority)
+                        CASE WHEN LOWER(u.username) LIKE $1 THEN 15 ELSE 0 END +
+                        CASE WHEN LOWER(u.username) LIKE $2 THEN 12 ELSE 0 END +
+                        CASE WHEN LOWER(u.username) LIKE $3 THEN 10 ELSE 0 END +
+                        
+                        -- Display name matches
+                        CASE WHEN LOWER(u.display_name) LIKE $1 THEN 12 ELSE 0 END +
+                        CASE WHEN LOWER(u.display_name) LIKE $2 THEN 10 ELSE 0 END +
+                        CASE WHEN LOWER(u.display_name) LIKE $3 THEN 8 ELSE 0 END +
+                        
+                        -- Bio matches
+                        CASE WHEN LOWER(u.bio) LIKE $1 THEN 8 ELSE 0 END +
+                        CASE WHEN LOWER(u.bio) LIKE $2 THEN 6 ELSE 0 END +
+                        CASE WHEN LOWER(u.bio) LIKE $3 THEN 4 ELSE 0 END +
+                        
+                        -- Bonus for multiple word matches
+                        CASE WHEN LOWER(u.username) LIKE $4 THEN 3 ELSE 0 END +
+                        CASE WHEN LOWER(u.display_name) LIKE $4 THEN 3 ELSE 0 END +
+                        CASE WHEN LOWER(u.bio) LIKE $4 THEN 2 ELSE 0 END
                     )::float as relevance_score
                 FROM users u
                 LEFT JOIN user_follows f ON u.id = f.following_id
                 LEFT JOIN articles a ON u.id = a.author_id AND a.status = 'published'
                 WHERE 
+                    -- Multiple search patterns for better matching
                     LOWER(u.username) LIKE $1 
+                    OR LOWER(u.username) LIKE $2
+                    OR LOWER(u.username) LIKE $3
                     OR LOWER(u.display_name) LIKE $1 
+                    OR LOWER(u.display_name) LIKE $2
+                    OR LOWER(u.display_name) LIKE $3
                     OR LOWER(u.bio) LIKE $1
+                    OR LOWER(u.bio) LIKE $2
+                    OR LOWER(u.bio) LIKE $3
+                    OR LOWER(u.username) LIKE $4
+                    OR LOWER(u.display_name) LIKE $4
+                    OR LOWER(u.bio) LIKE $4
                 GROUP BY u.id, u.username, u.display_name, u.bio, u.avatar_url, u.is_verified, u.created_at
             )
             SELECT * FROM user_search
             WHERE relevance_score > 0
             {}
-            LIMIT $2 OFFSET $3
+            LIMIT $5 OFFSET $6
         "#, sort_clause);
 
+        // Create multiple search patterns for better keyword matching
+        let exact_match = format!("%{}%", query.q.to_lowercase());
+        let word_boundary = format!("% {} %", query.q.to_lowercase());
+        let partial_start = format!("{}%", query.q.to_lowercase());
+        let multi_word = format!("%{}%", query.q.split_whitespace().collect::<Vec<_>>().join("%"));
+        
         let rows = sqlx::query(&sql)
-            .bind(&search_term)
-            .bind(limit)
-            .bind(offset)
+            .bind(&exact_match)      // $1 - exact match
+            .bind(&word_boundary)    // $2 - word boundary
+            .bind(&partial_start)    // $3 - partial start
+            .bind(&multi_word)       // $4 - multi-word
+            .bind(limit)             // $5 - limit
+            .bind(offset)            // $6 - offset
             .fetch_all(&self.pool)
             .await?;
 

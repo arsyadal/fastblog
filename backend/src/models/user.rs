@@ -20,7 +20,7 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::Type, PartialEq)]
 #[sqlx(type_name = "user_type", rename_all = "lowercase")]
 pub enum UserType {
     Free,
@@ -59,11 +59,14 @@ pub struct UpdateUserRequest {
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct LoginRequest {
-    #[validate(email(message = "Invalid email format"))]
-    pub email: String,
+    // Can be either email or username
+    #[validate(length(min = 1, message = "Email or username is required"))]
+    pub email: String, // Field name kept as 'email' for backward compatibility, but accepts both
     
     #[validate(length(min = 1, message = "Password is required"))]
     pub password: String,
+    
+    pub remember_me: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]

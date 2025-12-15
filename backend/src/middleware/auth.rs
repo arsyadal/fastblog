@@ -8,7 +8,7 @@ use axum::{
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::{services::auth::{AuthService, Claims}, models::UserType, AppState};
+use crate::{services::auth::{AuthService, Claims}, AppState};
 
 // Auth extractor for required authentication
 #[derive(Debug, Clone)]

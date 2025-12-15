@@ -1,0 +1,199 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+
+export const prerender = false;
+---
+
+<Layout title="Library - FastBlog">
+  <Header />
+  
+  <main class="min-h-screen bg-white dark:bg-gray-900">
+    <div class="max-w-4xl mx-auto px-6 py-12">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Your Library</h1>
+      <p class="text-gray-600 dark:text-gray-400 mb-8">Articles you've saved for later reading</p>
+      
+      <div id="library-content">
+        <div class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script>
+  const backendUrl = 'http://localhost:3001';
+  
+  async function loadBookmarks() {
+    const container = document.getElementById('library-content');
+    if (!container) return;
+    
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+    
+    if (!token) {
+      container.innerHTML = `
+        <div class="text-center py-12">
+          <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+          </svg>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Sign in to view your library</h3>
+          <p class="text-gray-600 dark:text-gray-400 mb-6">Save articles to read later by clicking the bookmark icon</p>
+          <a href="/login?redirect=/library" class="inline-block px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+            Sign in
+          </a>
+        </div>
+      `;
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${backendUrl}/api/v1/users/me/bookmarks`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login?redirect=/library';
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch bookmarks');
+      }
+      
+      const data = await response.json();
+      const articles = data.articles || [];
+      
+      if (articles.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12">
+            <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+            </svg>
+            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Your library is empty</h3>
+            <p class="text-gray-600 dark:text-gray-400 mb-6">Start saving articles to read later by clicking the bookmark icon</p>
+            <a href="/" class="inline-block px-6 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+              Explore articles
+            </a>
+          </div>
+        `;
+        return;
+      }
+      
+      const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        });
+      };
+      
+      const getAvatarUrl = (url: string | null) => {
+        if (!url) return null;
+        if (url.startsWith('http')) return url;
+        return url.startsWith('/') ? `${backendUrl}${url}` : `${backendUrl}/${url}`;
+      };
+      
+      container.innerHTML = `
+        <div class="space-y-8">
+          ${articles.map((article: any) => `
+            <article class="group border-b border-gray-100 dark:border-gray-800 pb-8 last:border-b-0">
+              <div class="flex items-center space-x-3 mb-4">
+                ${getAvatarUrl(article.author?.avatar_url) 
+                  ? `<img src="${getAvatarUrl(article.author.avatar_url)}" alt="${article.author?.display_name || article.author?.username}" class="w-6 h-6 rounded-full object-cover" onerror="this.style.display='none'" />`
+                  : `<div class="w-6 h-6 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                      <span class="text-xs text-gray-600 dark:text-gray-300">${(article.author?.display_name || article.author?.username || 'A').charAt(0).toUpperCase()}</span>
+                    </div>`
+                }
+                <span class="text-sm text-gray-700 dark:text-gray-300">
+                  ${article.author?.display_name || article.author?.username || 'Anonymous'}
+                </span>
+                <span class="text-gray-400 text-sm">·</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400">
+                  ${formatDate(article.published_at || article.created_at)}
+                </span>
+              </div>
+              
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white leading-tight mb-3 group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
+                <a href="/article/${article.slug}">${article.title}</a>
+              </h2>
+              
+              ${article.excerpt ? `
+                <p class="text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
+                  ${article.excerpt}
+                </p>
+              ` : ''}
+              
+              <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                  <span>${article.reading_time_minutes || 5} min read</span>
+                  <span class="flex items-center space-x-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                    </svg>
+                    <span>${article.claps_count || 0}</span>
+                  </span>
+                </div>
+                
+                <button 
+                  onclick="removeBookmark('${article.id}')" 
+                  class="flex items-center gap-2 text-yellow-600 dark:text-yellow-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                  title="Remove from library"
+                >
+                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div class="mt-2 text-xs text-gray-400 dark:text-gray-500">
+                Saved ${formatDate(article.bookmarked_at)}
+              </div>
+            </article>
+          `).join('')}
+        </div>
+      `;
+    } catch (error) {
+      console.error('Error loading bookmarks:', error);
+      container.innerHTML = `
+        <div class="text-center py-12">
+          <p class="text-red-500 mb-4">Failed to load your library</p>
+          <button onclick="loadBookmarks()" class="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-medium">
+            Try again
+          </button>
+        </div>
+      `;
+    }
+  }
+  
+  async function removeBookmark(articleId: string) {
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`${backendUrl}/api/v1/articles/${articleId}/bookmark`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (response.ok) {
+        // Reload the page to show updated list
+        loadBookmarks();
+      }
+    } catch (error) {
+      console.error('Failed to remove bookmark:', error);
+    }
+  }
+  
+  // Make removeBookmark available globally
+  (window as any).removeBookmark = removeBookmark;
+  
+  // Load bookmarks on page load
+  loadBookmarks();
+</script>

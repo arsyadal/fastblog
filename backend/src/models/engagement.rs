@@ -4,20 +4,20 @@ use sqlx::FromRow;
 use uuid::Uuid;
 use validator::Validate;
 
-// Claps (Medium's signature feature)
+// Claps (1 clap per user per article - toggle behavior)
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct Clap {
     pub id: Uuid,
     pub user_id: Uuid,
     pub article_id: Uuid,
-    pub clap_count: i32, // Max 50 per user per article
+    pub clap_count: i32, // Always 1 (kept for database compatibility)
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct ClapRequest {
-    #[validate(range(min = 1, max = 50, message = "Clap count must be between 1 and 50"))]
+    #[validate(range(min = 1, max = 1, message = "Clap count must be 1"))]
     pub clap_count: i32,
 }
 

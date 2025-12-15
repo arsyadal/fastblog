@@ -1,15 +1,28 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
+import BookmarkButton from '../islands/BookmarkButton.tsx';
 
 // Enable server-side rendering for this page to fetch articles
 export const prerender = false;
 
+// Get category from URL query params
+const url = new URL(Astro.request.url);
+const selectedCategory = url.searchParams.get('category');
+
+const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3001';
+
 // Fetch real articles from backend
 let articles = [];
 try {
-  const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3001';
-  const response = await fetch(`${backendUrl}/api/v1/articles?limit=10&sort=recent`);
+  let apiUrl = `${backendUrl}/api/v1/articles?limit=10&sort=recent`;
+  
+  // Add category filter if selected
+  if (selectedCategory) {
+    apiUrl += `&category=${encodeURIComponent(selectedCategory)}`;
+  }
+  
+  const response = await fetch(apiUrl);
   
   if (response.ok) {
     const data = await response.json();
@@ -19,8 +32,23 @@ try {
   }
 } catch (error) {
   console.error('Error fetching articles:', error);
-  // Fallback to empty array if fetch fails
   articles = [];
+}
+
+// Fetch trending articles for sidebar
+let trendingArticles = [];
+try {
+  const trendingResponse = await fetch(`${backendUrl}/api/v1/articles/trending?limit=5&time_window=168`);
+  
+  if (trendingResponse.ok) {
+    const trendingData = await trendingResponse.json();
+    trendingArticles = trendingData.articles || [];
+  } else {
+    console.error('Failed to fetch trending articles:', trendingResponse.status);
+  }
+} catch (error) {
+  console.error('Error fetching trending articles:', error);
+  trendingArticles = [];
 }
 
 const formatDate = (dateString: string) => {
@@ -29,9 +57,19 @@ const formatDate = (dateString: string) => {
     day: 'numeric'
   });
 };
+
+// Helper to get avatar URL
+const getAvatarUrl = (avatarUrl: string | null | undefined) => {
+  if (!avatarUrl) return null;
+  if (avatarUrl.startsWith('http')) return avatarUrl;
+  return avatarUrl.startsWith('/') ? `${backendUrl}${avatarUrl}` : `${backendUrl}/${avatarUrl}`;
+};
+
+// Available topics/categories
+const topics = ['Technology', 'Business', 'Health', 'Science', 'Education', 'Travel', 'Entertainment', 'Food'];
 ---
 
-<Layout title="FastBlog - Fast and Modern Blogging Platform">
+<Layout title={selectedCategory ? `${selectedCategory} - FastBlog` : "FastBlog - Fast and Modern Blogging Platform"}>
   <Header />
   
   <main class="min-h-screen bg-white dark:bg-gray-900">
@@ -60,6 +98,22 @@ const formatDate = (dateString: string) => {
     <!-- Articles - Medium style layout -->
     <section class="py-16">
       <div class="max-w-6xl mx-auto px-6">
+        <!-- Category Filter Indicator -->
+        {selectedCategory && (
+          <div class="mb-8 flex items-center gap-3">
+            <span class="text-gray-600 dark:text-gray-400">Showing articles in:</span>
+            <span class="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full font-medium">
+              {selectedCategory}
+            </span>
+            <a 
+              href="/" 
+              class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 underline"
+            >
+              Clear filter
+            </a>
+          </div>
+        )}
+        
         <div class="grid lg:grid-cols-3 gap-12">
           <!-- Main content -->
           <div class="lg:col-span-2 space-y-12">
@@ -69,7 +123,7 @@ const formatDate = (dateString: string) => {
                   <img 
                     src={article.author?.avatar_url ? (article.author.avatar_url.startsWith('/') ? `http://localhost:3001${article.author.avatar_url}` : article.author.avatar_url) : '/default-avatar.png'} 
                     alt={article.author?.display_name || article.author?.username}
-                    class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700"
+                    class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 object-cover"
                     onError="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDEyQzE0LjIwOTEgMTIgMTYgMTAuMjA5MSAxNiA4QzE2IDUuNzkwODYgMTQuMjA5MSA0IDEyIDRDOS43OTA4NiA0IDggNS43OTA4NiA4IDhDOCAxMC4yMDkxIDkuNzkwODYgMTIgMTIgMTJaTTEyIDEyQzE2IDEyIDIwIDE0IDIwIDIwVjIySDRWMjBDNCA0IDggMTIgMTIgMTJaIiBmaWxsPSIjOTQ5NDk0Ii8+Cjwvc3ZnPgo='"
                   />
                   <span class="text-sm text-gray-700 dark:text-gray-300">
@@ -103,11 +157,11 @@ const formatDate = (dateString: string) => {
                       </svg>
                       <span>{article.claps_count || 0}</span>
                     </span>
-                    <button class="flex items-center space-x-1 hover:text-gray-700 dark:hover:text-gray-300">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
-                      </svg>
-                    </button>
+                    <BookmarkButton 
+                      client:load
+                      articleId={article.id}
+                      className="text-sm"
+                    />
                   </div>
                   
                   <div class="flex gap-2">
@@ -122,14 +176,20 @@ const formatDate = (dateString: string) => {
             )) : (
               <div class="text-center py-12">
                 <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                  No articles yet
+                  {selectedCategory ? `No articles in ${selectedCategory}` : 'No articles yet'}
                 </h3>
                 <p class="text-gray-600 dark:text-gray-400 mb-6">
-                  Be the first to share your story with the world.
+                  {selectedCategory ? 'Try another topic or check back later.' : 'Be the first to share your story with the world.'}
                 </p>
-                <a href="/write" class="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-3 rounded-full font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
-                  Write your first article
-                </a>
+                {selectedCategory ? (
+                  <a href="/" class="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-3 rounded-full font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+                    View all articles
+                  </a>
+                ) : (
+                  <a href="/write" class="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-6 py-3 rounded-full font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
+                    Write your first article
+                  </a>
+                )}
               </div>
             )}
           </div>
@@ -143,24 +203,48 @@ const formatDate = (dateString: string) => {
                   Trending on FastBlog
                 </h3>
                 <div class="space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <div class="flex space-x-3">
+                  {trendingArticles.length > 0 ? trendingArticles.slice(0, 5).map((article, index) => (
+                    <a href={`/article/${article.slug}`} class="flex space-x-3 group">
                       <span class="text-2xl font-bold text-gray-300 dark:text-gray-600">
-                        0{i}
+                        0{index + 1}
                       </span>
                       <div class="flex-1">
                         <div class="flex items-center space-x-2 mb-1">
-                          <div class="w-4 h-4 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                          {getAvatarUrl(article.author?.avatar_url) ? (
+                            <img 
+                              src={getAvatarUrl(article.author?.avatar_url)} 
+                              alt={article.author?.display_name || article.author?.username}
+                              class="w-4 h-4 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div class="w-4 h-4 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                              <span class="text-[8px] text-gray-600 dark:text-gray-400">
+                                {(article.author?.display_name || article.author?.username || 'A').charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
                           <span class="text-xs text-gray-600 dark:text-gray-400">
-                            Author Name
+                            {article.author?.display_name || article.author?.username || 'Anonymous'}
                           </span>
                         </div>
-                        <h4 class="text-sm font-medium text-gray-900 dark:text-white leading-tight">
-                          Sample trending article title goes here
+                        <h4 class="text-sm font-medium text-gray-900 dark:text-white leading-tight group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors line-clamp-2">
+                          {article.title}
                         </h4>
+                        <div class="flex items-center gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          <span>{formatDate(article.published_at || article.created_at)}</span>
+                          <span>·</span>
+                          <span class="flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                            </svg>
+                            {article.claps_count || 0}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    </a>
+                  )) : (
+                    <p class="text-sm text-gray-500 dark:text-gray-400">No trending articles yet</p>
+                  )}
                 </div>
               </div>
 
@@ -170,10 +254,18 @@ const formatDate = (dateString: string) => {
                   Recommended topics
                 </h3>
                 <div class="flex flex-wrap gap-2">
-                  {['Technology', 'Programming', 'Design', 'Writing', 'Startup'].map(topic => (
-                    <span class="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer">
+                  {topics.map(topic => (
+                    <a 
+                      href={`/?category=${encodeURIComponent(topic)}`}
+                      class:list={[
+                        'px-3 py-1 rounded-full text-sm transition-colors',
+                        selectedCategory === topic 
+                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900' 
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                      ]}
+                    >
                       {topic}
-                    </span>
+                    </a>
                   ))}
                 </div>
               </div>

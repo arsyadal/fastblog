@@ -5,7 +5,7 @@ import tailwind from '@astrojs/tailwind';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'http://localhost:3000', // Add site URL for canonical URLs
+  site: 'http://localhost:3003', // Add site URL for canonical URLs
   integrations: [
     react(),
     tailwind({
@@ -22,7 +22,7 @@ export default defineConfig({
   },
   compressHTML: true,
   server: {
-    port: 3000,
+    port: 3003,
     host: true
   },
   // API proxy to Rust backend

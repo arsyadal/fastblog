@@ -4,12 +4,14 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 interface LoginFormData {
   email: string;
   password: string;
+  remember_me: boolean;
 }
 
 export default function LoginForm() {
   const [formData, setFormData] = useState<LoginFormData>({
     email: '',
-    password: ''
+    password: '',
+    remember_me: false
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,9 +54,10 @@ export default function LoginForm() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -71,19 +74,19 @@ export default function LoginForm() {
 
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Email address
+            Email or Username
           </label>
           <div className="mt-1">
             <input
               id="email"
               name="email"
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
               required
               value={formData.email}
               onChange={handleChange}
               className="appearance-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-800 rounded-md focus:outline-none focus:ring-gray-500 focus:border-gray-500 focus:z-10 sm:text-sm"
-              placeholder="Enter your email"
+              placeholder="Enter your email or username"
             />
           </div>
         </div>
@@ -122,8 +125,10 @@ export default function LoginForm() {
           <div className="flex items-center">
             <input
               id="remember-me"
-              name="remember-me"
+              name="remember_me"
               type="checkbox"
+              checked={formData.remember_me}
+              onChange={handleChange}
               className="h-4 w-4 text-gray-900 focus:ring-gray-500 border-gray-300 rounded"
             />
             <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
@@ -183,5 +188,3 @@ export default function LoginForm() {
     </div>
   );
 }
-
-

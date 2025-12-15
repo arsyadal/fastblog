@@ -147,6 +147,31 @@ impl UserService {
         .await?;
 
         if let Some(user) = user {
+            // Get articles count for this user
+            let articles_count = sqlx::query_scalar!(
+                "SELECT COUNT(*) FROM articles WHERE author_id = $1 AND status = 'published'",
+                user.id
+            )
+            .fetch_one(&self.db)
+            .await?
+            .unwrap_or(0);
+
+            // Get total claps received (simplified for now)
+            let total_claps_received = 0i64;
+
+            // Check if user is a member
+            let is_member = user.user_type == UserType::Member || user.user_type == UserType::Writer;
+
+            // Handle avatar URL - if it's a relative path, make it absolute
+            let avatar_url = if let Some(url) = &user.avatar_url {
+                if url.starts_with("uploads/") {
+                    Some(format!("http://localhost:3001/{}", url))
+                } else {
+                    Some(url.clone())
+                }
+            } else {
+                None
+            };
 
             Ok(Some(UserResponse {
                 id: user.id,
@@ -154,14 +179,14 @@ impl UserService {
                 username: user.username,
                 display_name: user.display_name,
                 bio: user.bio,
-                avatar_url: user.avatar_url,
+                avatar_url,
                 user_type: user.user_type,
                 is_verified: user.is_verified,
-                is_member: false, // Default, we'll need to query this properly
+                is_member,
                 followers_count: user.followers_count,
                 following_count: user.following_count,
-                articles_count: 0, // Default, we'll need to query this properly
-                total_claps_received: 0, // Default, we'll need to query this properly
+                articles_count: articles_count as i32,
+                total_claps_received,
                 created_at: user.created_at,
             }))
         } else {
@@ -241,5 +266,88 @@ impl UserService {
         .await?;
 
         Ok(exists.unwrap_or(false))
+    }
+
+    // Get user recommendations - suggest users to follow
+    // Based on: users with most followers, users with most articles, users followed by people you follow
+    pub async fn get_user_recommendations(
+        &self,
+        user_id: &Uuid,
+        limit: Option<i64>,
+    ) -> Result<Vec<UserResponse>> {
+        let limit = limit.unwrap_or(10).min(50) as i64;
+
+        // Get users that:
+        // 1. Are not the current user
+        // 2. Are not already followed by the current user
+        // 3. Have published articles
+        // 4. Ordered by followers count and articles count
+        let users = sqlx::query!(
+            r#"
+            SELECT 
+                u.id,
+                u.username,
+                u.display_name,
+                u.bio,
+                u.avatar_url,
+                u.user_type as "user_type: UserType",
+                u.is_verified,
+                u.followers_count,
+                u.following_count,
+                u.created_at,
+                COUNT(DISTINCT a.id) as articles_count
+            FROM users u
+            LEFT JOIN articles a ON u.id = a.author_id AND a.status = 'published'
+            WHERE u.id != $1
+                AND NOT EXISTS (
+                    SELECT 1 FROM user_follows uf 
+                    WHERE uf.follower_id = $1 AND uf.following_id = u.id
+                )
+            GROUP BY u.id, u.username, u.display_name, u.bio, u.avatar_url, 
+                     u.user_type, u.is_verified, u.followers_count, u.following_count, u.created_at
+            HAVING COUNT(DISTINCT a.id) > 0
+            ORDER BY u.followers_count DESC, articles_count DESC, u.created_at DESC
+            LIMIT $2
+            "#,
+            user_id,
+            limit
+        )
+        .fetch_all(&self.db)
+        .await?;
+
+        let mut recommendations = Vec::new();
+        for user in users {
+            let is_member = user.user_type == UserType::Member || user.user_type == UserType::Writer;
+            
+            // Handle avatar URL
+            let avatar_url = if let Some(url) = &user.avatar_url {
+                if url.starts_with("uploads/") {
+                    Some(format!("http://localhost:3001/{}", url))
+                } else {
+                    Some(url.clone())
+                }
+            } else {
+                None
+            };
+
+            recommendations.push(UserResponse {
+                id: user.id,
+                email: "".to_string(), // Don't expose email
+                username: user.username,
+                display_name: user.display_name,
+                bio: user.bio,
+                avatar_url,
+                user_type: user.user_type,
+                is_verified: user.is_verified,
+                is_member,
+                followers_count: user.followers_count,
+                following_count: user.following_count,
+                articles_count: user.articles_count.unwrap_or(0) as i32,
+                total_claps_received: 0, // Could be calculated if needed
+                created_at: user.created_at,
+            });
+        }
+
+        Ok(recommendations)
     }
 }

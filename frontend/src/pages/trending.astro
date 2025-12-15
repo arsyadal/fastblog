@@ -1,0 +1,15 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import TrendingArticles from '../islands/TrendingArticles.tsx';
+---
+
+<Layout title="Trending Articles">
+  <Header />
+
+  <main class="min-h-screen bg-white dark:bg-gray-900">
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <TrendingArticles client:load />
+    </div>
+  </main>
+</Layout>

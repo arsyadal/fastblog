@@ -1,6 +1,5 @@
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
-use crate::models::{Article, User};
 use crate::handlers::search::{
     SearchQuery, SearchResponse, SearchResults, SearchArticleResult, SearchUserResult, 
     SearchTagResult, SearchAuthorResult, SearchFilters, SearchSortBy
@@ -57,7 +56,7 @@ impl SearchService {
     async fn search_articles_internal(&self, query: &SearchQuery) -> Result<Vec<SearchArticleResult>, sqlx::Error> {
         let limit = query.limit.unwrap_or(20);
         let offset = ((query.page.unwrap_or(1) - 1) * limit).max(0);
-        let search_term = format!("%{}%", query.q.to_lowercase());
+        let _search_term = format!("%{}%", query.q.to_lowercase());
 
         let sort_clause = match query.sort.as_ref().unwrap_or(&SearchSortBy::Relevance) {
             SearchSortBy::Relevance => "ORDER BY relevance_score DESC",
@@ -192,7 +191,7 @@ impl SearchService {
     async fn search_users_internal(&self, query: &SearchQuery) -> Result<Vec<SearchUserResult>, sqlx::Error> {
         let limit = query.limit.unwrap_or(20);
         let offset = ((query.page.unwrap_or(1) - 1) * limit).max(0);
-        let search_term = format!("%{}%", query.q.to_lowercase());
+        let _search_term = format!("%{}%", query.q.to_lowercase());
 
         let sort_clause = match query.sort.as_ref().unwrap_or(&SearchSortBy::Relevance) {
             SearchSortBy::Relevance => "ORDER BY relevance_score DESC",

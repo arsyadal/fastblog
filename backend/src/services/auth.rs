@@ -99,18 +99,35 @@ impl<'a> AuthService<'a> {
     }
 
     pub async fn login(&self, request: LoginRequest) -> Result<AuthResponse, Box<dyn std::error::Error + Send + Sync>> {
-        // Find user by email
-        let user = sqlx::query_as!(
-            User,
-            r#"SELECT id as user_id, email, username, display_name, bio, avatar_url, user_type as "user_type: UserType", 
-                      is_verified, followers_count, following_count, created_at, updated_at
-               FROM users WHERE email = $1"#,
-            &request.email
-        )
-        .fetch_optional(&self.db.pool)
-        .await?;
+        // Find user by email or username
+        // Check if input looks like an email (contains @)
+        let is_email = request.email.contains('@');
+        
+        let user = if is_email {
+            // Search by email
+            sqlx::query_as!(
+                User,
+                r#"SELECT id as user_id, email, username, display_name, bio, avatar_url, user_type as "user_type: UserType", 
+                          is_verified, followers_count, following_count, created_at, updated_at
+                   FROM users WHERE email = $1"#,
+                &request.email
+            )
+            .fetch_optional(&self.db.pool)
+            .await?
+        } else {
+            // Search by username
+            sqlx::query_as!(
+                User,
+                r#"SELECT id as user_id, email, username, display_name, bio, avatar_url, user_type as "user_type: UserType", 
+                          is_verified, followers_count, following_count, created_at, updated_at
+                   FROM users WHERE username = $1"#,
+                &request.email
+            )
+            .fetch_optional(&self.db.pool)
+            .await?
+        };
 
-        let user = user.ok_or("Invalid email or password")?;
+        let user = user.ok_or("Invalid email/username or password")?;
 
         // Get password hash
         let password_hash_row = sqlx::query("SELECT password_hash FROM users WHERE id = $1")
@@ -122,7 +139,7 @@ impl<'a> AuthService<'a> {
 
         // Verify password
         if !self.verify_password(&request.password, &password_hash)? {
-            return Err("Invalid email or password".into());
+            return Err("Invalid email/username or password".into());
         }
 
         // Update last login
@@ -132,8 +149,9 @@ impl<'a> AuthService<'a> {
             .execute(&self.db.pool)
             .await?;
 
-        // Generate JWT token
-        let (token, expires_at) = self.generate_token(&user)?;
+        // Generate JWT token with appropriate duration based on remember_me
+        let remember_me = request.remember_me.unwrap_or(false);
+        let (token, expires_at) = self.generate_token_with_duration(&user, remember_me)?;
 
         Ok(AuthResponse {
             user: user.into(),
@@ -186,8 +204,17 @@ impl<'a> AuthService<'a> {
     }
 
     fn generate_token(&self, user: &User) -> Result<(String, chrono::DateTime<Utc>), Box<dyn std::error::Error + Send + Sync>> {
+        self.generate_token_with_duration(user, false)
+    }
+
+    fn generate_token_with_duration(&self, user: &User, remember_me: bool) -> Result<(String, chrono::DateTime<Utc>), Box<dyn std::error::Error + Send + Sync>> {
         let now = Utc::now();
-        let expires_at = now + Duration::hours(24); // Token expires in 24 hours
+        // If remember_me is true, token expires in 30 days, otherwise 24 hours
+        let expires_at = if remember_me {
+            now + Duration::days(30)
+        } else {
+            now + Duration::hours(24)
+        };
 
         let claims = Claims {
             sub: user.user_id.to_string(),

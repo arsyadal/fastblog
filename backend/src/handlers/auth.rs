@@ -1,5 +1,5 @@
 use axum::{
-    extract::{State, Request},
+    extract::State,
     http::{StatusCode, HeaderMap},
     response::Json,
     routing::{post, get},
@@ -62,13 +62,23 @@ async fn login(
     State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<Json<AuthResponse>, (StatusCode, Json<Value>)> {
-    // Validate input
-    if let Err(errors) = payload.validate() {
+    // Validate input (password is required, email/username field just needs to be non-empty)
+    if payload.email.trim().is_empty() {
         return Err((
             StatusCode::BAD_REQUEST,
             Json(json!({
                 "error": "Validation failed",
-                "details": errors
+                "message": "Email or username is required"
+            })),
+        ));
+    }
+    
+    if payload.password.trim().is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(json!({
+                "error": "Validation failed",
+                "message": "Password is required"
             })),
         ));
     }
@@ -83,7 +93,7 @@ async fn login(
                 StatusCode::UNAUTHORIZED,
                 Json(json!({
                     "error": "Authentication failed",
-                    "message": "Invalid email or password"
+                    "message": "Invalid email/username or password"
                 })),
             ))
         }

@@ -1,22 +1,35 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
+import ProfileActionButton from '../islands/ProfileActionButton.tsx';
 
 export const prerender = false;
 
 const { username } = Astro.params;
 
 let user = null;
+let articles = [];
 let error = null;
 
 try {
   const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3001';
-  const response = await fetch(`${backendUrl}/api/v1/users/profile/${username}`);
   
-  if (response.ok) {
-    user = await response.json();
+  // Fetch user profile
+  const userResponse = await fetch(`${backendUrl}/api/v1/users/profile/${username}`);
+  
+  if (userResponse.ok) {
+    user = await userResponse.json();
+    
+    // Fetch user's articles
+    if (user.id) {
+      const articlesResponse = await fetch(`${backendUrl}/api/v1/users/${user.id}/articles`);
+      if (articlesResponse.ok) {
+        const articlesData = await articlesResponse.json();
+        articles = articlesData.articles || [];
+      }
+    }
   } else {
-    error = `User not found (${response.status})`;
+    error = `User not found (${userResponse.status})`;
   }
 } catch (err) {
   error = 'Failed to fetch user profile';
@@ -44,7 +57,7 @@ const formatDate = (dateString: string) => {
           <div class="mb-6">
             {user.avatar_url ? (
               <img 
-                src={user.avatar_url} 
+                src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:3001${user.avatar_url}`}
                 alt={user.display_name || user.username}
                 class="w-32 h-32 rounded-full mx-auto object-cover border-4 border-white shadow-lg"
               />
@@ -104,12 +117,12 @@ const formatDate = (dateString: string) => {
             </div>
           )}
 
-          <!-- Follow Button (placeholder for now) -->
-          <div class="mb-8">
-            <button class="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-8 py-3 rounded-full font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors">
-              Follow
-            </button>
-          </div>
+          <!-- Follow/Edit Profile Button -->
+          <ProfileActionButton 
+            profileUserId={user.id} 
+            profileUsername={user.username}
+            client:load 
+          />
 
           <!-- Member Since -->
           <p class="text-sm text-gray-500 dark:text-gray-400">
@@ -123,20 +136,58 @@ const formatDate = (dateString: string) => {
             Articles by {user.display_name || user.username}
           </h2>
           
-          <!-- Placeholder for articles -->
-          <div class="text-center py-12">
-            <div class="text-gray-400 mb-4">
-              <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-              </svg>
+          {articles.length > 0 ? (
+            <div class="grid gap-6">
+              {articles.map((article) => (
+                <article key={article.id} class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                  {article.featured_image_url && (
+                    <div class="mb-4">
+                      <img 
+                        src={article.featured_image_url.startsWith('http') ? article.featured_image_url : `http://localhost:3001${article.featured_image_url}`}
+                        alt={article.title}
+                        class="w-full h-48 object-cover rounded-lg"
+                      />
+                    </div>
+                  )}
+                  <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                    <a href={`/article/${article.slug}`} class="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                      {article.title}
+                    </a>
+                  </h3>
+                  {article.subtitle && (
+                    <p class="text-lg text-gray-700 dark:text-gray-300 mb-3">{article.subtitle}</p>
+                  )}
+                  {article.excerpt && (
+                    <p class="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">{article.excerpt}</p>
+                  )}
+                  <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                    <div class="flex items-center space-x-4">
+                      <span>{article.reading_time_minutes} min read</span>
+                      <span>•</span>
+                      <span>{article.claps_count} claps</span>
+                      <span>•</span>
+                      <span>{article.views_count} views</span>
+                    </div>
+                    <span>{formatDate(article.published_at || article.created_at)}</span>
+                  </div>
+                </article>
+              ))}
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              No articles yet
-            </h3>
-            <p class="text-gray-600 dark:text-gray-400">
-              This user hasn't published any articles yet.
-            </p>
-          </div>
+          ) : (
+            <div class="text-center py-12">
+              <div class="text-gray-400 mb-4">
+                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                No articles yet
+              </h3>
+              <p class="text-gray-600 dark:text-gray-400">
+                This user hasn't published any articles yet.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     ) : (

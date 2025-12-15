@@ -87,7 +87,7 @@ export default function ProfileForm() {
       formData.append('avatar', file);
 
       const backendUrl = import.meta.env.PUBLIC_BACKEND_URL || 'http://localhost:3001';
-      
+
       const response = await fetch(`${backendUrl}/api/v1/upload/avatar`, {
         method: 'POST',
         headers: {
@@ -99,12 +99,12 @@ export default function ProfileForm() {
       if (response.ok) {
         const result = await response.json();
         setMessage({ type: 'success', text: result.message });
-        
+
         // Update user avatar in state
         if (user) {
           setUser({ ...user, avatar_url: result.avatar_url });
         }
-        
+
         // Refresh the page to update all avatar instances
         setTimeout(() => {
           window.location.reload();
@@ -115,8 +115,8 @@ export default function ProfileForm() {
       }
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      setMessage({ 
-        type: 'error', 
+      setMessage({
+        type: 'error',
         text: error instanceof Error ? error.message : 'Failed to upload avatar'
       });
     } finally {
@@ -149,12 +149,12 @@ export default function ProfileForm() {
       if (response.ok) {
         const result = await response.json();
         setMessage({ type: 'success', text: result.message });
-        
+
         // Update user avatar in state
         if (user) {
           setUser({ ...user, avatar_url: undefined });
         }
-        
+
         // Refresh the page to update all avatar instances
         setTimeout(() => {
           window.location.reload();
@@ -165,8 +165,8 @@ export default function ProfileForm() {
       }
     } catch (error) {
       console.error('Error deleting avatar:', error);
-      setMessage({ 
-        type: 'error', 
+      setMessage({
+        type: 'error',
         text: error instanceof Error ? error.message : 'Failed to delete avatar'
       });
     } finally {
@@ -176,9 +176,9 @@ export default function ProfileForm() {
 
   const handleProfileUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     setMessage(null);
-    
+
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) {
@@ -200,11 +200,11 @@ export default function ProfileForm() {
 
       if (response.ok) {
         setMessage({ type: 'success', text: 'Profile updated successfully' });
-        
+
         // Update user in state
         if (user) {
-          setUser({ 
-            ...user, 
+          setUser({
+            ...user,
             display_name: displayName.trim() || undefined,
             bio: bio.trim() || undefined
           });
@@ -215,8 +215,8 @@ export default function ProfileForm() {
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      setMessage({ 
-        type: 'error', 
+      setMessage({
+        type: 'error',
         text: error instanceof Error ? error.message : 'Failed to update profile'
       });
     }
@@ -247,11 +247,10 @@ export default function ProfileForm() {
     <div className="space-y-8">
       {/* Message */}
       {message && (
-        <div className={`p-4 rounded-lg ${
-          message.type === 'success' 
-            ? 'bg-green-50 text-green-800 border border-green-200' 
+        <div className={`p-4 rounded-lg ${message.type === 'success'
+            ? 'bg-green-50 text-green-800 border border-green-200'
             : 'bg-red-50 text-red-800 border border-red-200'
-        }`}>
+          }`}>
           {message.text}
         </div>
       )}
@@ -272,14 +271,14 @@ export default function ProfileForm() {
               </span>
             </div>
           )}
-          
+
           {uploading && (
             <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
             </div>
           )}
         </div>
-        
+
         <div className="flex-1 space-y-4">
           <div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
@@ -299,9 +298,12 @@ export default function ProfileForm() {
               )}
             </div>
           </div>
-          
+
           <div className="flex space-x-3">
-            <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50">
+            <label className={`cursor-pointer inline-flex items-center gap-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 py-2.5 rounded-full font-medium hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
               {uploading ? 'Uploading...' : 'Change Avatar'}
               <input
                 type="file"
@@ -311,18 +313,21 @@ export default function ProfileForm() {
                 className="hidden"
               />
             </label>
-            
+
             {user.avatar_url && (
               <button
                 onClick={handleDeleteAvatar}
                 disabled={uploading}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-5 py-2.5 rounded-full font-medium hover:bg-red-50 hover:border-red-300 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:border-red-700 dark:hover:text-red-400 transition-colors disabled:opacity-50"
               >
-                Delete Avatar
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
               </button>
             )}
           </div>
-          
+
           <p className="text-sm text-gray-500 dark:text-gray-400">
             Upload a profile picture. Max size: 5MB. Supported formats: JPG, PNG, GIF, WebP.
           </p>

@@ -1,0 +1,217 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+
+export const prerender = false;
+
+let userStats = null;
+let error = null;
+
+try {
+  const token = Astro.cookies.get('token')?.value || Astro.cookies.get('auth_token')?.value;
+  
+  if (!token) {
+    error = 'Authentication required';
+  } else {
+    const backendUrl = import.meta.env.BACKEND_URL || 'http://localhost:3001';
+    
+    // Get current user info
+    const userResponse = await fetch(`${backendUrl}/api/v1/auth/me`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (userResponse.ok) {
+      const user = await userResponse.json();
+      
+      // Get user statistics
+      const statsResponse = await fetch(`${backendUrl}/api/v1/users/${user.id}/stats`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (statsResponse.ok) {
+        userStats = await statsResponse.json();
+      } else {
+        error = 'Failed to fetch statistics';
+      }
+    } else {
+      error = 'Authentication failed';
+    }
+  }
+} catch (err) {
+  error = 'Failed to load statistics';
+  console.error('Error loading stats:', err);
+}
+
+const formatNumber = (num: number) => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
+};
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
+---
+
+<Layout title="Article Statistics - FastBlog">
+  <Header />
+
+  <main class="min-h-screen bg-white dark:bg-gray-900">
+    {error ? (
+      <div class="max-w-2xl mx-auto px-6 py-16 text-center">
+        <div class="text-gray-400 mb-6">
+          <svg class="w-24 h-24 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+          </svg>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+          {error === 'Authentication required' ? 'Login Required' : 'Error Loading Statistics'}
+        </h1>
+        <p class="text-lg text-gray-600 dark:text-gray-400 mb-8">
+          {error === 'Authentication required' 
+            ? 'Please login to view your article statistics.' 
+            : 'There was an error loading your statistics. Please try again.'}
+        </p>
+        {error === 'Authentication required' && (
+          <a href="/login" class="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors">
+            Login to Continue
+          </a>
+        )}
+      </div>
+    ) : userStats ? (
+      <div class="max-w-6xl mx-auto px-6 py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Article Statistics</h1>
+          <p class="text-gray-600 dark:text-gray-400">Track your content performance and engagement</p>
+        </div>
+
+        <!-- Lifetime Stats Overview -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Lifetime Overview</h2>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="text-center">
+              <div class="text-3xl font-bold text-blue-600">{userStats.total_articles}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Total Articles</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-green-600">{formatNumber(userStats.total_views)}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Total Views</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-orange-600">{formatNumber(userStats.total_reads)}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Total Reads</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-bold text-purple-600">{formatNumber(userStats.total_claps)}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-400">Total Claps</div>
+            </div>
+          </div>
+          
+          <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6">
+              <div class="text-center">
+                <div class="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {userStats.average_engagement_rate.toFixed(1)}%
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Avg. Engagement Rate</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {userStats.average_reading_time.toFixed(1)} min
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Avg. Reading Time</div>
+              </div>
+              <div class="text-center">
+                <div class="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {formatNumber(userStats.total_comments)}
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Total Comments</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Performing Articles -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Top Performing Articles</h2>
+          
+          {userStats.top_articles && userStats.top_articles.length > 0 ? (
+            <div class="space-y-4">
+              {userStats.top_articles.map((article: any) => (
+                <div key={article.article_id} class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div class="flex-1">
+                    <h3 class="font-medium text-gray-900 dark:text-white mb-1">{article.title}</h3>
+                    <div class="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                      <span>{article.reading_time_minutes} min read</span>
+                      <span>•</span>
+                      <span>{formatDate(article.published_at || article.created_at)}</span>
+                    </div>
+                  </div>
+                  
+                  <div class="flex items-center space-x-6 text-right">
+                    <div>
+                      <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                        {formatNumber(article.views_count)}
+                      </div>
+                      <div class="text-xs text-gray-600 dark:text-gray-400">Views</div>
+                    </div>
+                    <div>
+                      <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                        {formatNumber(article.reads_count)}
+                      </div>
+                      <div class="text-xs text-gray-600 dark:text-gray-400">Reads</div>
+                    </div>
+                    <div>
+                      <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                        {formatNumber(article.claps_count)}
+                      </div>
+                      <div class="text-xs text-gray-600 dark:text-gray-400">Claps</div>
+                    </div>
+                    <div>
+                      <div class="text-lg font-semibold text-gray-900 dark:text-white">
+                        {article.engagement_rate.toFixed(1)}%
+                      </div>
+                      <div class="text-xs text-gray-600 dark:text-gray-400">Engagement</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div class="text-center py-8">
+              <div class="text-gray-400 mb-4">
+                <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                </svg>
+              </div>
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Articles Yet</h3>
+              <p class="text-gray-600 dark:text-gray-400">
+                Start writing to see your statistics here.
+              </p>
+              <a href="/write" class="inline-block mt-4 bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                Write Your First Article
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    ) : (
+      <div class="max-w-2xl mx-auto px-6 py-16 text-center">
+        <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <p class="text-gray-600 dark:text-gray-400">Loading statistics...</p>
+      </div>
+    )}
+  </main>
+</Layout>

@@ -43,8 +43,7 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site || 'http://localhost
       rel="stylesheet" 
     />
     
-    <!-- Performance optimizations -->
-    <link rel="preload" href="/api/articles" as="fetch" crossorigin />
+    <!-- Performance optimizations removed - preload not needed for dynamic API calls -->
   </head>
   <body class="font-sans antialiased bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
     <slot />
